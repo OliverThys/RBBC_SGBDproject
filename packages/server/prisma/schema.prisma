@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Utilisateurs & permissions (mini Active Directory)
+// ─────────────────────────────────────────────
+
+model Utilisateur {
+  id             String   @id @default(uuid())
+  login          String   @unique
+  motDePasseHash String   @map("mot_de_passe_hash")
+  nom            String
+  prenom         String
+  email          String   @unique
+  actif          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  groupes             UtilisateurGroupe[]
+  permissionsDirectes UtilisateurPermission[]
+
+  @@map("utilisateur")
+}
+
+enum CodePermission {
+  JOUEURS_LIRE
+  JOUEURS_ECRIRE
+  JOUEURS_SUPPRIMER
+  EQUIPES_LIRE
+  EQUIPES_ECRIRE
+  EQUIPES_SUPPRIMER
+  ENTRAINEMENTS_LIRE
+  ENTRAINEMENTS_ECRIRE
+  ENTRAINEMENTS_SUPPRIMER
+  PRESENCES_LIRE
+  PRESENCES_ECRIRE
+  RENCONTRES_LIRE
+  RENCONTRES_ECRIRE
+  RENCONTRES_SUPPRIMER
+  STAFF_LIRE
+  STAFF_ECRIRE
+  STAFF_SUPPRIMER
+  STATISTIQUES_LIRE
+  COTISATIONS_LIRE
+  COTISATIONS_ECRIRE
+  UTILISATEURS_LIRE
+  UTILISATEURS_ECRIRE
+  UTILISATEURS_SUPPRIMER
+  GROUPES_GERER
+  PERMISSIONS_GERER
+  IMPORT_CALENDRIER
+}
+
+model Permission {
+  id   String         @id @default(uuid())
+  code CodePermission @unique
+
+  groupes       GroupePermission[]
+  utilisateurs  UtilisateurPermission[]
+
+  @@map("permission")
+}
+
+model Groupe {
+  id        String   @id @default(uuid())
+  nom       String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  permissions  GroupePermission[]
+  utilisateurs UtilisateurGroupe[]
+
+  @@map("groupe")
+}
+
+model GroupePermission {
+  id           String @id @default(uuid())
+  groupeId     String @map("groupe_id")
+  permissionId String @map("permission_id")
+
+  groupe     Groupe     @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([groupeId, permissionId])
+  @@map("groupe_permission")
+}
+
+model UtilisateurGroupe {
+  id            String @id @default(uuid())
+  utilisateurId String @map("utilisateur_id")
+  groupeId      String @map("groupe_id")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  groupe      Groupe      @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, groupeId])
+  @@map("utilisateur_groupe")
+}
+
+model UtilisateurPermission {
+  id            String    @id @default(uuid())
+  utilisateurId String    @map("utilisateur_id")
+  permissionId  String    @map("permission_id")
+  expireLe      DateTime? @map("expire_le")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  permission  Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, permissionId])
+  @@map("utilisateur_permission")
+}
+
+// ─────────────────────────────────────────────
+// Équipes, joueurs, staff (modèle multi-équipe)
+// ─────────────────────────────────────────────
+
+model Equipe {
+  id        String   @id @default(uuid())
+  nom       String
+  categorie String
+  saison    String
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  joueurs            JoueurEquipe[]
+  staff              StaffEquipe[]
+  entrainements      Entrainement[]
+  rencontres         Rencontre[]
+  mappingsFederation MappingEquipeFederation[]
+
+  @@map("equipe")
+}
+
+model Joueur {
+  id            String   @id @default(uuid())
+  nom           String
+  prenom        String
+  dateNaissance DateTime @map("date_naissance") @db.Date
+  email         String?
+  telephone     String?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  equipes     JoueurEquipe[]
+  presences   Presence[]
+  cotisations Cotisation[]
+
+  @@map("joueur")
+}
+
+/// Appartenance d'un joueur à une équipe. Porte le numéro de maillot
+/// (propre à chaque équipe) puisqu'un joueur peut appartenir à plusieurs
+/// équipes en même temps (ex. surclassement).
+model JoueurEquipe {
+  id            String   @id @default(uuid())
+  joueurId      String   @map("joueur_id")
+  equipeId      String   @map("equipe_id")
+  numeroMaillot Int      @map("numero_maillot")
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  joueur Joueur @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+  equipe Equipe @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+
+  @@unique([equipeId, numeroMaillot])
+  @@map("joueur_equipe")
+}
+
+enum FonctionStaff {
+  ENTRAINEUR
+  ASSISTANT
+  DELEGUE
+  KINE
+}
+
+model Staff {
+  id        String        @id @default(uuid())
+  nom       String
+  prenom    String
+  fonction  FonctionStaff
+  email     String?
+  telephone String?
+  actif     Boolean       @default(true)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  equipes StaffEquipe[]
+
+  @@map("staff")
+}
+
+/// Appartenance d'un membre du staff à une équipe encadrée (multi-équipe).
+model StaffEquipe {
+  id        String   @id @default(uuid())
+  staffId   String   @map("staff_id")
+  equipeId  String   @map("equipe_id")
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  equipe Equipe @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, equipeId])
+  @@map("staff_equipe")
+}
+
+// ─────────────────────────────────────────────
+// Entraînements & présences
+// ─────────────────────────────────────────────
+
+model Entrainement {
+  id           String   @id @default(uuid())
+  equipeId     String   @map("equipe_id")
+  dateHeure    DateTime @map("date_heure")
+  dureeMinutes Int      @map("duree_minutes")
+  lieu         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  equipe    Equipe     @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  presences Presence[]
+
+  @@map("entrainement")
+}
+
+/// Présence par (entraînement, joueur) - donc implicitement par équipe,
+/// puisqu'un entraînement est lié à une équipe.
+model Presence {
+  id             String  @id @default(uuid())
+  entrainementId String  @map("entrainement_id")
+  joueurId       String  @map("joueur_id")
+  present        Boolean @default(false)
+  justifie       Boolean @default(false)
+
+  entrainement Entrainement @relation(fields: [entrainementId], references: [id], onDelete: Cascade)
+  joueur       Joueur       @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+
+  @@unique([entrainementId, joueurId])
+  @@map("presence")
+}
+
+// ─────────────────────────────────────────────
+// Rencontres & calendrier
+// ─────────────────────────────────────────────
+
+enum StatutRencontre {
+  A_VENIR
+  JOUEE
+  FORFAIT_NOUS
+  FORFAIT_ADVERSAIRE
+}
+
+/// Une rencontre est toujours vue du point de vue d'une de NOS équipes
+/// (`equipe`) contre un adversaire externe (`adversaire`, texte libre -
+/// les clubs adverses ne sont pas gérés comme des `Equipe` du système).
+/// `domicile` indique si c'est notre équipe qui reçoit.
+model Rencontre {
+  id               String          @id @default(uuid())
+  equipeId         String          @map("equipe_id")
+  adversaire       String
+  domicile         Boolean
+  dateHeure        DateTime        @map("date_heure")
+  lieu             String?
+  scoreNous        Int?            @map("score_nous")
+  scoreAdversaire  Int?            @map("score_adversaire")
+  statut           StatutRencontre @default(A_VENIR)
+  numeroFederation String?         @map("numero_federation")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  equipe Equipe @relation(fields: [equipeId], references: [id])
+
+  @@map("rencontre")
+}
+
+/// Journalise toute modification de score, alimenté par le trigger
+/// trg_audit_rencontre (voir migration SQL dédiée).
+model AuditLog {
+  id                     String   @id @default(uuid())
+  rencontreId            String   @map("rencontre_id")
+  ancienScoreNous        Int?     @map("ancien_score_nous")
+  ancienScoreAdversaire  Int?     @map("ancien_score_adversaire")
+  nouveauScoreNous       Int?     @map("nouveau_score_nous")
+  nouveauScoreAdversaire Int?     @map("nouveau_score_adversaire")
+  modifieLe              DateTime @default(now()) @map("modifie_le")
+
+  @@map("audit_log")
+}
+
+/// Mémorise la correspondance entre un nom d'équipe fédération (ex.
+/// "P2H Royal Blaregnies BC A") et l'équipe RBBC correspondante, résolue
+/// manuellement une fois à l'import puis réutilisée automatiquement.
+model MappingEquipeFederation {
+  id            String @id @default(uuid())
+  nomFederation String @unique @map("nom_federation")
+  equipeId      String @map("equipe_id")
+
+  equipe Equipe @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+
+  @@map("mapping_equipe_federation")
+}
+
+// ─────────────────────────────────────────────
+// Cotisations
+// ─────────────────────────────────────────────
+
+model TarifCotisation {
+  id        String  @id @default(uuid())
+  categorie String  @unique
+  montant   Decimal @db.Decimal(8, 2)
+
+  @@map("tarif_cotisation")
+}
+
+enum StatutCotisation {
+  NON_PAYE
+  PARTIEL
+  PAYE
+}
+
+model Cotisation {
+  id          String           @id @default(uuid())
+  joueurId    String           @map("joueur_id")
+  saison      String
+  montantDu   Decimal          @map("montant_du") @db.Decimal(8, 2)
+  montantPaye Decimal          @default(0) @map("montant_paye") @db.Decimal(8, 2)
+  statut      StatutCotisation @default(NON_PAYE)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  joueur Joueur @relation(fields: [joueurId], references: [id], onDelete: Cascade)
+
+  @@map("cotisation")
+}
