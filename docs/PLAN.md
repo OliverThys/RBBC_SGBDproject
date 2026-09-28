@@ -24,6 +24,7 @@
 14. **Sauvegardes PostgreSQL** : `pg_dump` planifié quotidiennement + copie vers un stockage externe au PC-serveur.
 15. **Cotisations : tarif par catégorie dans une table dédiée** (`tarif_cotisation`), éditable par l'admin, appliqué par défaut à la création d'une cotisation.
 16. **Historique Git : réel, pas de dates falsifiées.** Le v1 avait un historique de 8 commits avec des groupes committés à quelques secondes d'écart pour des phases entières - signe manifeste d'un historique reconstitué après coup plutôt que d'un vrai suivi de dev. Le v2 démarre un historique **authentique à partir d'aujourd'hui** : un commit par sous-tâche réellement terminée, à la date réelle du travail, poussé au fur et à mesure. Voir section dédiée « Conventions Git » ci-dessous.
+17. **Modèle `Rencontre` corrigé pendant l'implémentation (Phase 1).** Une première version du schéma reliait `Rencontre` à deux `Equipe` (domicile/extérieur), ce qui supposait à tort que l'adversaire est aussi une `Equipe` gérée par le système - or `Equipe` ne modélise que **nos propres équipes** (catégories du club), pas les clubs externes. Corrigé avant tout commit : `Rencontre` a une seule FK `equipeId` (notre équipe), un champ `adversaire` (texte libre, nom du club adverse), un booléen `domicile`, et `scoreNous`/`scoreAdversaire` à la place de `scoreDomicile`/`scoreExterieur`.
 
 ---
 
