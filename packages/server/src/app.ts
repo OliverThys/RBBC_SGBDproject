@@ -4,6 +4,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import { config } from "./core/config";
 import { errorHandler, notFoundHandler } from "./core/errors";
+import { authRouter } from "./modules/auth/auth.router";
 
 export const app = express();
 
@@ -29,6 +30,8 @@ api.use(
 api.get("/health", (_req, res) => {
   res.json({ data: { status: "ok" } });
 });
+
+api.use("/auth", authRouter);
 
 app.use("/api/v1", api);
 app.use(notFoundHandler);
