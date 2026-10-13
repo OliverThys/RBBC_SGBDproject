@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { config } from "./core/config";
 import { errorHandler, notFoundHandler } from "./core/errors";
 import { authRouter } from "./modules/auth/auth.router";
+import { joueursRouter } from "./modules/joueurs/joueurs.router";
 
 export const app = express();
 
@@ -32,6 +33,7 @@ api.get("/health", (_req, res) => {
 });
 
 api.use("/auth", authRouter);
+api.use("/joueurs", joueursRouter);
 
 app.use("/api/v1", api);
 app.use(notFoundHandler);
