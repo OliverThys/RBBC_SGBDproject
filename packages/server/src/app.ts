@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./core/errors";
 import { authRouter } from "./modules/auth/auth.router";
 import { equipesRouter } from "./modules/equipes/equipes.router";
 import { joueursRouter } from "./modules/joueurs/joueurs.router";
+import { staffRouter } from "./modules/staff/staff.router";
 
 export const app = express();
 
@@ -36,6 +37,7 @@ api.get("/health", (_req, res) => {
 api.use("/auth", authRouter);
 api.use("/joueurs", joueursRouter);
 api.use("/equipes", equipesRouter);
+api.use("/staff", staffRouter);
 
 app.use("/api/v1", api);
 app.use(notFoundHandler);
