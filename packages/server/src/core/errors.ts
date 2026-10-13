@@ -19,6 +19,8 @@ export const forbidden = (message = "Permission refusée") =>
 export const notFound = (message = "Ressource introuvable") =>
   new AppError(404, "NOT_FOUND", message);
 export const conflict = (message: string) => new AppError(409, "CONFLICT", message);
+export const unprocessable = (message: string, details?: unknown) =>
+  new AppError(422, "VALIDATION_ERROR", message, details);
 
 /** Enveloppe les handlers async pour que les rejets arrivent à l'error handler. */
 export const asyncHandler =
