@@ -8,6 +8,7 @@ import { authRouter } from "./modules/auth/auth.router";
 import { entrainementsRouter } from "./modules/entrainements/entrainements.router";
 import { equipesRouter } from "./modules/equipes/equipes.router";
 import { joueursRouter } from "./modules/joueurs/joueurs.router";
+import { rencontresRouter } from "./modules/rencontres/rencontres.router";
 import { staffRouter } from "./modules/staff/staff.router";
 
 export const app = express();
@@ -40,6 +41,7 @@ api.use("/joueurs", joueursRouter);
 api.use("/equipes", equipesRouter);
 api.use("/staff", staffRouter);
 api.use("/entrainements", entrainementsRouter);
+api.use("/rencontres", rencontresRouter);
 
 app.use("/api/v1", api);
 app.use(notFoundHandler);
