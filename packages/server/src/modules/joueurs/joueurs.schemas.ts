@@ -1,15 +1,5 @@
 import { z } from "zod";
-
-/** Normalise un numéro belge saisi librement (espaces, points, tirets, slashs). */
-const normaliserTelephone = (brut: string) => brut.replace(/[\s./\-()]/g, "");
-
-// Préfixe national (0) ou international (+32 / 0032), puis 8 chiffres (fixe) ou 9 (mobile).
-const TELEPHONE_BELGE = /^(?:\+32|0032|0)[1-9]\d{7,8}$/;
-
-const telephone = z
-  .string()
-  .transform(normaliserTelephone)
-  .refine((t) => TELEPHONE_BELGE.test(t), "Numéro de téléphone belge invalide");
+import { booleenQuery, telephoneBelge } from "../../core/validation";
 
 const dateNaissance = z
   .string()
@@ -23,14 +13,12 @@ const joueurBase = z.object({
   prenom: z.string().trim().min(1).max(100),
   dateNaissance,
   email: z.email().nullish(),
-  telephone: telephone.nullish(),
+  telephone: telephoneBelge.nullish(),
   actif: z.boolean().optional(),
 });
 
 export const creerJoueurSchema = joueurBase;
 export const modifierJoueurSchema = joueurBase.partial();
-
-const booleenQuery = z.enum(["true", "false"]).transform((v) => v === "true");
 
 export const listeJoueursQuerySchema = z.object({
   equipe: z.uuid().optional(),
